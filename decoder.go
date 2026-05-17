@@ -3,7 +3,7 @@ package jacksongo
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	// "fmt"
 	"reflect"
 )
 
@@ -61,12 +61,27 @@ func (d *Decoder) decode(raw any, t reflect.Type) (reflect.Value, error) {
 
 	switch t.Kind() {
 	case reflect.Pointer:
+		elem := t.Elem()
+
+		if !isReferenceType(elem) {
+			val, err := d.decode(raw, elem)
+			if err != nil {
+				return reflect.Value{}, err
+			}
+
+			ptr := reflect.New(elem)
+			ptr.Elem().Set(val)
+
+			return ptr, nil
+		}
+
 		if id, ok, err := d.refs.DecodeRef(raw); err != nil {
 			return reflect.Value{}, err
 		} else if ok {
 			obj, exists := d.objects[id]
 			if !exists {
-				return reflect.Value{}, fmt.Errorf("unknown reference id %d", id)
+				return reflect.Zero(t), nil
+				// return reflect.Value{}, fmt.Errorf("unknown reference id %d", id)
 			}
 
 			return obj, nil
@@ -168,4 +183,13 @@ func (d *Decoder) fillStruct(raw map[string]any, v reflect.Value) error {
 	}
 
 	return nil
+}
+
+func isReferenceType(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Struct, reflect.Map, reflect.Slice, reflect.Array:
+		return true
+	default:
+		return false
+	}
 }

@@ -127,8 +127,8 @@ func TestUnmarshalUnknownReference(t *testing.T) {
 
 	err := Unmarshal([]byte(`[999]`), &users)
 
-	if err == nil {
-		t.Fatal("expected error")
+	if err != nil || len(users) != 1 || users[0] != nil {
+		t.Fatal("expected nil")
 	}
 }
 
